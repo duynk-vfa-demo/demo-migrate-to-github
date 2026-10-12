@@ -1,0 +1,27 @@
+version: 2.1
+# Demo pipeline for a mirror rehearsal: build/test are real, deploy is FAKE (echo only, nothing is deployed)
+jobs:
+  build:
+    docker:
+      - image: cimg/php:8.3
+    resource_class: small
+    steps:
+      - checkout
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test
+  build_and_deploy:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - run: echo "Docker -> ECR -> ECS for $CIRCLE_BRANCH (fake, nothing is deployed, no approval step)"
+workflows:
+  build-deploy:
+    jobs:
+      - build
+      - build_and_deploy:
+          requires: [build]
+          filters:
+            branches:
+              only: [develop, staging, production]
